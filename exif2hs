@@ -1,0 +1,95 @@
+#! /bin/sh
+# exiftool to Hamerspace Metadata
+version="0.21"
+# 11/22/2021
+# Could use $0 and strip leading path...
+script="exif2hs"
+
+# Peter Learmonth, Hammerspace
+# peter.learmonth@hammerspace.com
+
+# v0.01 was written using dcm2xml and only handled DICOM.  Was clunky and a
+#       little buggy.
+# v0.20 rewritten from scratch to use exiftool.  Handles file any format
+#       exiftool knows.  Much less clunky and buggy.
+# v0.21 preserve atime
+
+# Use this to see what hstk commands would be executed
+#inert=echo
+
+if [ $# -eq 0 ]
+then
+  echo $0:  Need a file arg
+  exit 1
+fi
+if [ ! -f $1 ]
+then
+  echo $0:  File not found
+  exit 1
+fi
+
+if ! type exiftool >/dev/null
+then
+  echo "$0: This script requires exiftool."
+  exit 2
+fi
+# exiftool preserves atime, but just in case...
+atime=`stat -c '%x' $1`
+
+# List of keys to exclude.  Things like inode stuff that's not really about
+# what's in the file.
+skip=":Directory:
+:File Size:
+:File Modification Date/Time:
+:File Access Date/Time:
+:File Inode Change Date/Time:
+:File Permissions:
+:Start Of Item:
+:End Of Items:
+:End Of Sequence:
+"
+
+exiftool "$1" | { while read line
+do
+  # Use | with sed as it seems least likely to be included in metadata.  May
+  # have to inspect line to see if | is used and try an alternate.  ~ doesn't
+  # seem common.
+  # Or just do this in Python...
+  key=`echo $line | cut -f1 -d: |sed -e 's| *$||'`
+  val=`echo $line | sed -e "s|$key *:||" -e 's|^ *||'`
+  if echo $skip | grep ":$key:" >/dev/null
+  then
+    continue
+  #else
+  #  sleep 2
+  fi
+  key=`echo $key | sed -e 's| |_|g'`
+  val=`echo $val | sed -e 's|, use -b option to extract||'`
+
+  #echo "${key}| $val"
+  $inert hs tag set $key -e "\'$val\'" $1
+  # Special handling for various file types, keys and values.
+  case $key in 
+    File_Type) case $val in
+                 #      DICOM tag is kinda redundant since exiftool provides
+                 #      File Type.
+                 DICOM) $inert hs tag set DICOM -e "\'true\'" $1
+                        $inert hs tag set HIPAA -e "\'true\'" $1
+                 #      echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+                 ;;
+                 esac
+               ;;
+  esac
+
+done
+
+}
+
+#echo "--- non loopy bits ---"
+now=`date "+%Y:%m:%d %T"`
+$inert hs tag set hs_meta_date -e "\'$now\'" $1
+$inert hs tag set hs_meta_tool -e "\'$script\'" $1
+$inert hs tag set hs_meta_tool_version -e "\'$version\'" $1
+
+# Set atime to whatever it was before this script
+touch -a -d "$atime" $1

@@ -1,0 +1,102 @@
+#! /bin/sh
+# AWS Rekognition to Hammerspace Metadata
+version="0.01"
+# 2/19/2024
+script="rek2hs"
+
+# Peter Learmonth, Hammerspace
+# peter.learmonth@hammerspace.com
+
+# Script to get AWS Recognition result for a file on an OSV set up for
+# Rekognition and insert top level tags into HS metadata.
+
+# Prerequisites
+# - AWS CLI installed on system running the script
+#     "aws configure" run to set up creds or access+secret keys, and default region 
+# - AWS S3 bucket with Rekognition configured and that bucket a volume (OSV) on Hammerspace
+#     User may need permissions to use Rekognition
+# - HSTK installed on system running the script
+# - Hammerspace share mounted and files to be processed are in this share
+# - Place-on or other objective used to place an instance in the bucket with Rekognition configured
+
+# Setup notes on HS internal Confluence.  Some of these notes are stale. 
+# For example, you don't need to turn off doEncryption and useCompression in
+# cloud-mover-conf.yaml.  If you add the OSV with --native, it takes care of that.
+# https://confluence.it.hammer.space/pages/viewpage.action?spaceKey=DEV&title=Steps+to+manually+setup+the+AWS+Lambda+function+for+metadata+harvesting
+
+# TODO
+#  Check files are on HS share
+
+# BUGS
+# Script will only works with one bucket configured for Rek
+
+# No way to know the bucket for sure from the OSV since admin can rename it.
+# (If this ran on Anvil or we had admin ssh or API access, we could...)
+
+osv='AWS::peter3'
+bucket='peter3'
+
+tmpfile=/tmp/rek2hs$$
+
+for file in $*
+do
+# Find files on S3 Rek bucket and get the object ID / path
+#x=`hs rekognition-tag has rek2hs_date $file`
+#echo $x
+  if [ `hs rekognition-tag has rek2hs_date $file` == "TRUE" ]
+  then
+    echo "$file has rek tags ... skipping"
+    continue
+  fi
+
+  #objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$osv')" | grep '|PATH = ' |cut -f2 -d\"` 2>/dev/null
+  #if [ $? -eq 0 ]
+  if objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$osv')" | grep '|PATH = '` #2>/dev/null 
+  then
+    objpath=`echo $objpath | cut -f2 -d\"` 
+    #echo $objpath
+    # There may be a better way to run the loop and get the indent ($spaces)
+    # below, but for now I'll just use a tmp file and grep for space before I loop...
+    aws rekognition detect-labels --image "S3Object={Bucket=$bucket,Name=Hammerspace_v2/$objpath}" >$tmpfile
+    
+  else
+    echo "$file not on an OSV with Rekognition configured ... skipping"
+    continue
+  fi
+
+# Assumes properly formatted JSON.  Could use jq to clean it up.
+# There are way better ways to parse this
+  spaces=`grep '"Name"' $tmpfile | head -1 | sed 's/.Name.*//' 2>/dev/null `
+#echo "$spaces xxx"
+
+  tags_in=0
+  grep -E "^$spaces\"(Name|Confidence)\""  $tmpfile 2>/dev/null | { while read line
+  do
+    #echo $line 
+    if echo $line | grep '^ *"Name"' >/dev/null 2>&1
+    then
+      #echo Line with name
+      key=`echo $line | cut -f4 -d\"| sed 's/ /_/g'`
+    fi
+    if echo $line | grep '^ *"Confidence"' >/dev/null 2>&1
+    then
+      #echo Line with Confidence
+      conf=`echo $line | sed -e 's/.*: //' -e 's/,.*//'`
+      hs rekognition-tag add $key -e $conf $file 
+      #hs rekognition-tag delete $key  $file 
+      tags_in=`expr $tags_in + 1`
+      tput hpa 1
+      echo -e "$tags_in\c"
+      
+    fi
+  
+  done
+  }
+  dt=`date +%Y%m%d_%H%M%S`
+  hs rekognition-tag add rek2hs_date -e "'$dt'" $file 
+  #hs rekognition-tag delete $key  $file 
+
+  echo " rekognition Tags inserted for file $file."
+
+done
+rm -f $tmpfile
