@@ -10,7 +10,7 @@ Use at your own risk. The author is not liable for any damages or issues arising
 
 "exiftool to Hammerspace"
 
-This script uses `Exiftool` (which must be installed and in the command search path) to extract metadata from many common file types then inserts key-value pairs as Hammerspace tags in the filesystem associated with the file.  `Exiftool` supports dozens of file type incliuding images and other media types and even DICOM (medical imaging which is why I wrote it in the first place).  These tags may be viewed using HSTK via the hs tag list <filename> command and/or the Hammerspace plugin for Microsoft Windows File Explorer.  The tags may be used in objectives, collections, and queries.
+This script uses `Exiftool` (which must be installed and in the command search path) to extract metadata from many common file types then inserts key-value pairs as Hammerspace tags in the filesystem associated with the file.  `Exiftool` supports dozens of file type including images and other media types and even DICOM (medical imaging which is why I wrote it in the first place).  These tags may be viewed using HSTK via the hs tag list <filename> command and/or the Hammerspace plugin for Microsoft Windows File Explorer.  The tags may be used in objectives, collections, and queries.
 
 This version of exif2hs is written in bash and requires one parameter, the name or path of a file in a Hammerspace share.
 
@@ -30,7 +30,7 @@ This script is used in the Hero's Journey hands-on-lab.
 ### Prerequisites
 
 - AWS CLI installed on system running the script  
-    `aws configure` run to set up creds or access+secret keys, and default region 
+    `aws configure` run to set up credentials or access and secret keys, and default region 
 - AWS S3 bucket with Rekognition configured and that bucket added as a "Native" volume (OSV) on Hammerspace  
     Add the bucket to Hammerspace using the admin CLI and the `--native` option  
       `admin@my_hammerspace> object-volume-add --native --no-encryption` (and other required options)  
