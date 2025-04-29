@@ -1,11 +1,11 @@
 #! /bin/sh
 # AWS Rekognition to Hammerspace Metadata
-version="0.01"
-# 2/19/2024
+version="0.02"
+# 3/9/2024
 script="rek2hs"
 
 # Peter Learmonth, Hammerspace
-# peter.learmonth@hammerspace.com
+# peter@hammerspace.com
 
 # Script to get AWS Recognition result for a file on an OSV set up for
 # Rekognition and insert top level tags into HS metadata.
@@ -33,8 +33,9 @@ script="rek2hs"
 # No way to know the bucket for sure from the OSV since admin can rename it.
 # (If this ran on Anvil or we had admin ssh or API access, we could...)
 
-osv='AWS::peter3'
-bucket='peter3'
+hsosv='rekbucket'
+bucket=$rekognitionbucket #From env variable set by wrapper
+#echo "bucket = $bucket"
 
 tmpfile=/tmp/rek2hs$$
 
@@ -43,15 +44,17 @@ do
 # Find files on S3 Rek bucket and get the object ID / path
 #x=`hs rekognition-tag has rek2hs_date $file`
 #echo $x
-  if [ `hs rekognition-tag has rek2hs_date $file` == "TRUE" ]
+  #if [ `hs rekognition-tag has rek2hs_date $file` == "TRUE" ]
+  if [ `hs tag has rek2hs_date $file` == "TRUE" ]
   then
-    echo "$file has rek tags ... skipping"
+    #echo "$file has rek tags ... skipping"
+    echo -e "#\c"
     continue
   fi
 
-  #objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$osv')" | grep '|PATH = ' |cut -f2 -d\"` 2>/dev/null
+  #objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$hsosv')" | grep '|PATH = ' |cut -f2 -d\"` 2>/dev/null
   #if [ $? -eq 0 ]
-  if objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$osv')" | grep '|PATH = '` #2>/dev/null 
+  if objpath=`hs eval -e instances $file | grep -A10 "STORAGE_VOLUME('$hsosv')" | grep '|PATH = '` #2>/dev/null 
   then
     objpath=`echo $objpath | cut -f2 -d\"` 
     #echo $objpath
@@ -60,12 +63,14 @@ do
     aws rekognition detect-labels --image "S3Object={Bucket=$bucket,Name=Hammerspace_v2/$objpath}" >$tmpfile
     
   else
-    echo "$file not on an OSV with Rekognition configured ... skipping"
+    #echo "$file not on an OSV with Rekognition configured ... skipping"
+    echo -e ".\c"
     continue
   fi
 
 # Assumes properly formatted JSON.  Could use jq to clean it up.
 # There are way better ways to parse this
+  echo
   spaces=`grep '"Name"' $tmpfile | head -1 | sed 's/.Name.*//' 2>/dev/null `
 #echo "$spaces xxx"
 
@@ -82,7 +87,8 @@ do
     then
       #echo Line with Confidence
       conf=`echo $line | sed -e 's/.*: //' -e 's/,.*//'`
-      hs rekognition-tag add $key -e $conf $file 
+      hs tag add rek_$key -e $conf $file 
+      #hs rekognition-tag add $key -e $conf $file 
       #hs rekognition-tag delete $key  $file 
       tags_in=`expr $tags_in + 1`
       tput hpa 1
@@ -93,7 +99,8 @@ do
   done
   }
   dt=`date +%Y%m%d_%H%M%S`
-  hs rekognition-tag add rek2hs_date -e "'$dt'" $file 
+  hs tag add rek2hs_date -e "'$dt'" $file 
+  #hs rekognition-tag add rek2hs_date -e "'$dt'" $file 
   #hs rekognition-tag delete $key  $file 
 
   echo " rekognition Tags inserted for file $file."
