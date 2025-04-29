@@ -48,7 +48,7 @@ This script has been tested with Hammerspace 5.0 and 5.1 from a Centos 8 client 
 
 ## top10_by_vol.py
 
-This Python script runs a Hammerspace HSTK metadata query to generate a report of the top 10 files by size notccessed in the last 2 days on each volume used by the share, and converts the output into an Excel workbook with headings and filters.
+This Python script runs a Hammerspace HSTK metadata query to generate a report of the top 10 files by size not accessed in the last 2 days on each volume used by the share, and converts the output into an Excel workbook with headings and filters.
 
 The HSTK command the script runs is as follows:
 
@@ -75,7 +75,7 @@ The HSTK command the script runs is as follows:
 
 You can try the above command on any path in a Hammerspace share and see the direct HSTK output.
 
-THe script requires a filename for the Excel report, with or without .xlsx extension.  The script accepts a path to start from, and if not provided assumes the current working directory.  The path or pwd must be on a mounted Hammerspace share.
+The script requires a filename for the Excel report, with or without .xlsx extension.  The script accepts a path to start from, and if not provided assumes the current working directory.  The path or pwd must be on a mounted Hammerspace share.
 
 ### Prerequisites
 This script requires openpyxl, argparse, and hstk.  You can install with
