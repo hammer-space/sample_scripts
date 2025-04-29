@@ -39,7 +39,7 @@ This script is used in the Hero's Journey hands-on-lab.
 - Hammerspace share mounted and files to be processed are in this share
 - Place-on or other objective used to place an instance in the bucket with Rekognition configured
 
-YHou must edit the script and change the following two parameters to match your setup:
+You must edit the script and change the following two parameters to match your setup:
 
 `hsosv='rekbucket'` # Hammerspace Object Storage Volume - The name of the OSV in Hammerspace.  You can get it from the GUI: Infrastructure > Volumes or `object-volume-list`
 `bucket=$rekognitionbucket` # Bucket name in AWS.  In the Hero's Journey lab this parameter is passed from a parent script, hence the variable.  You can replace `$rekognitionbucket` with the name of your bucket.
@@ -52,11 +52,11 @@ This Python script runs a Hammerspace HSTK metadata query to generate a report o
 
 The HSTK command the script runs is as follows:
 
-`hs -j sum -e 'IS_FILE&&ACCESS_AGE>=2DAYS?ROWS(INSTANCES)?SUMS_TABLE{|::KEY=INSTANCES[ROW].VOLUME,|::VALUE={1FILE/files,SPACE_USED/bytes,TOP10_TABLE{{DPATH,space_used/bytes}}}}[ROWS(INSTANCES)]' <path>`
+`hs -j sum -e 'IS_FILE&&ACCESS_AGE>=2DAYS?ROWS(INSTANCES)?SUMS_TABLE{|::KEY=INSTANCES[ROW].VOLUME,|::VALUE={1FILE/files,SPACE_USED/bytes,TOP10_TABLE{{DPA,space_used/bytes}}}}[ROWS(INSTANCES)]' <path>`
 
 You can try the above command on any path in a Hammerspace share and see the direct HSTK output.
 
-THe script requires a filename for the Excel report, with or without .xlsx extension.  The script accepts a path to start from, and if not provided assumes the current working directory.  The path or pwd must be on a mounted Hammerspace share.
+The script requires a filename for the Excel report, with or without .xlsx extension.  The script accepts a path to start from, and if not provided assumes the current working directory.  The path or pwd must be on a mounted Hammerspace share.
 
 ### Prerequisites
 
